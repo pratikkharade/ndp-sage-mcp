@@ -9,8 +9,10 @@ ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    MCP_TRANSPORT=streamable-http \
     MCP_HOST=0.0.0.0 \
-    MCP_PORT=8000
+    MCP_PORT=8000 \
+    MCP_PATH=/mcp
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
@@ -36,9 +38,9 @@ USER sage
 # Expose the port the app runs on
 EXPOSE 8000
 
-# Health check (test MCP endpoint with trailing slash)
-HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
-    CMD curl -f http://localhost:8000/mcp/ || curl -f http://localhost:8000/ || exit 1
+# Health check hits the dedicated /health endpoint (no auth required).
+HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
+    CMD curl -fsS http://localhost:8000/health || exit 1
 
 # Command to run the application
 CMD ["python", "sage_mcp.py"]

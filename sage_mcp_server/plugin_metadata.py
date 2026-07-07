@@ -88,10 +88,20 @@ class PluginMetadata(BaseModel):
 class PluginRegistry:
     """Registry for managing plugin metadata and search"""
 
-    def __init__(self):
+    def __init__(self, auto_refresh: Optional[bool] = None):
         self.plugins: Dict[str, PluginMetadata] = {}
         self.science_description_cache: Dict[str, str] = {}  # Cache for fetched science descriptions
-        self.refresh_cache()
+        self._refreshed = False
+        # Skip network at import time when running under pytest or when explicitly disabled
+        if auto_refresh is None:
+            import os as _os
+            import sys as _sys
+            auto_refresh = (
+                _os.environ.get("SAGE_MCP_SKIP_REGISTRY_REFRESH") != "1"
+                and "pytest" not in _sys.modules
+            )
+        if auto_refresh:
+            self.refresh_cache()
 
     def _fetch_science_description(self, science_description_path: str) -> str:
         """Fetch science description content from ECR"""
@@ -180,10 +190,11 @@ class PluginRegistry:
                         continue
 
                 logger.info(f"Successfully cached {len(self.plugins)} plugins with science descriptions")
+                self._refreshed = True
             else:
                 logger.error(f"Failed to fetch plugins: {response.status_code}")
         except Exception as e:
-            logger.error(f"Error refreshing plugin cache: {e}")
+            logger.warning(f"Could not refresh plugin cache (offline?): {e}")
 
     def _parse_datetime(self, dt_string: Optional[str]) -> Optional[datetime]:
         """Parse datetime string from ECR API"""
@@ -257,8 +268,12 @@ class PluginRegistry:
 
     def get_plugins_by_type(self, plugin_type: str) -> List[PluginMetadata]:
         """Get plugins of a specific type/category"""
-        return [p for p in self.plugins.values()
-                if plugin_type.lower() in p.keywords.lower() if p.keywords]
+        needle = plugin_type.lower()
+        return [
+            p
+            for p in self.plugins.values()
+            if p.keywords and needle in p.keywords.lower()
+        ]
 
     def get_data_query_info(self, plugin_id: str) -> Dict[str, Any]:
         """Get information about how to query data from a plugin"""

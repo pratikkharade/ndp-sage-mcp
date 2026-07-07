@@ -1,13 +1,13 @@
-from dataclasses import dataclass
-from typing import Dict, List, Optional, Set, Union
+from dataclasses import dataclass, field
+from typing import Dict, List, Optional, Set
 from enum import Enum
-import re
 import logging
-from datetime import datetime, timedelta
-import pandas as pd
+
 import requests
 
 logger = logging.getLogger(__name__)
+
+SAGE_PLUGINS_URL = "https://ecr.sagecontinuum.org/api/apps"
 
 # Data Models
 class DataCategory(str, Enum):
@@ -28,49 +28,51 @@ class MeasurementType:
     category: DataCategory
     unit: Optional[str] = None  # e.g. "°C"
     description: Optional[str] = None
-    plugin_patterns: List[str] = None  # List of regex patterns to match plugin names
-
-    def __post_init__(self):
-        if self.plugin_patterns is None:
-            self.plugin_patterns = []
+    plugin_patterns: List[str] = field(default_factory=list)
 
 @dataclass
 class Plugin:
     """Model for a Sage plugin"""
     name: str  # e.g. "waggle/plugin-iio:0.4.1"
     version: str
-    measurements: List[MeasurementType]
+    measurements: List[MeasurementType] = field(default_factory=list)
     description: Optional[str] = None
-    capabilities: Set[str] = None
-
-    def __post_init__(self):
-        if self.capabilities is None:
-            self.capabilities = set()
+    capabilities: Set[str] = field(default_factory=set)
 
 class PluginRegistry:
     """Registry for managing plugin metadata and search"""
 
-    def __init__(self):
+    def __init__(self, auto_refresh: Optional[bool] = None):
         self.plugins: Dict[str, Plugin] = {}
         self.measurements: Dict[str, MeasurementType] = {}
         self._initialize_known_measurements()
         self._initialize_known_plugins()
-        self.refresh_cache()
+        if auto_refresh is None:
+            import os as _os
+            import sys as _sys
+            auto_refresh = (
+                _os.environ.get("SAGE_MCP_SKIP_REGISTRY_REFRESH") != "1"
+                and "pytest" not in _sys.modules
+            )
+        if auto_refresh:
+            self.refresh_cache()
 
     def refresh_cache(self) -> None:
         """Refresh the plugin metadata cache from the Sage API"""
         try:
             response = requests.get(SAGE_PLUGINS_URL, timeout=10)
             if response.status_code == 200:
-                plugins_data = response.json()
-                for plugin_data in plugins_data:
+                payload = response.json()
+                # ECR returns {"data": [...]}, older or mocked APIs return a bare list
+                plugins_data = payload.get("data", payload) if isinstance(payload, dict) else payload
+                for plugin_data in plugins_data or []:
                     try:
                         plugin = Plugin(
                             name=plugin_data.get("name", ""),
                             version=plugin_data.get("version", "0.0.0"),
                             measurements=[],
-                            description=plugin_data.get("description", ""),
-                            capabilities=set()
+                            description=plugin_data.get("description", "") or "",
+                            capabilities=set(),
                         )
                         if plugin.name:  # Only add if we have a valid name
                             self.plugins[plugin.name] = plugin
@@ -80,7 +82,7 @@ class PluginRegistry:
             else:
                 logger.error(f"Failed to fetch plugins: {response.status_code}")
         except Exception as e:
-            logger.error(f"Error refreshing plugin cache: {e}")
+            logger.warning(f"Could not refresh plugin cache (using known plugins): {e}")
             # Ensure we have at least the known plugins
             self._initialize_known_plugins()
 

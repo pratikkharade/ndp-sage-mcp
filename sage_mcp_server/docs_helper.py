@@ -52,7 +52,66 @@ class SAGEDocsHelper:
 
     def _setup_faqs(self):
         self.faqs = {
-            # ... (copy FAQ dict from sage_mcp.py) ...
+            "getting_started": {
+                "question": "How do I get started with Sage?",
+                "answer": (
+                    "1. Visit https://portal.sagecontinuum.org/ to create an account.\n"
+                    "2. Get an access token from https://portal.sagecontinuum.org/account/access.\n"
+                    "3. Install `sage-data-client`: `pip install sage-data-client`.\n"
+                    "4. Explore available data with `list_available_nodes()` and "
+                    "`get_environmental_summary()` in this MCP server."
+                ),
+            },
+            "plugin_development": {
+                "question": "How do I develop a Sage plugin?",
+                "answer": (
+                    "1. Use the `create_plugin()` tool or fork the cookiecutter template.\n"
+                    "2. Build the plugin container with `pluginctl build .` on a dev node.\n"
+                    "3. Test with `pluginctl run .` and publish to the Edge Code Repository (ECR)."
+                ),
+            },
+            "data_access": {
+                "question": "How do I access Sage data?",
+                "answer": (
+                    "Use the `sage-data-client` Python library for programmatic access, or the "
+                    "MCP tools such as `get_node_all_data`, `get_node_temperature`, "
+                    "`search_measurements`, and `query_plugin_data_nl`. For protected data, provide "
+                    "a `username:token` via Authorization header, X-SAGE-Token, or `?token=` query."
+                ),
+            },
+            "job_submission": {
+                "question": "How do I submit a Sage job?",
+                "answer": (
+                    "Use `submit_plugin_job(plugin_type, job_name, nodes)` for pre-configured "
+                    "plugins (`air_quality`, `audio_sampler`, `camera_sampler`, ...) or "
+                    "`submit_sage_job` for a custom container image. Both require a valid Sage token."
+                ),
+            },
+            "sensors": {
+                "question": "What sensors are available on Sage nodes?",
+                "answer": (
+                    "Nodes typically have BME680 (environmental), BME280 (internal), IIO sensors, "
+                    "cameras (top/bottom RGB, PTZ), audio microphones, and a rain gauge. "
+                    "Use `list_all_nodes()` and `get_sensor_details(sensor_type)` for specifics."
+                ),
+            },
+            "troubleshooting": {
+                "question": "Common troubleshooting steps.",
+                "answer": (
+                    "- Query timeouts: shorten `time_range` (e.g. `-5m`).\n"
+                    "- Auth failures: verify token format is `username:token`.\n"
+                    "- No data: use `search_measurements` first to see what's actually publishing.\n"
+                    "- Job failures: `check_job_status(job_id)` for scheduler feedback."
+                ),
+            },
+            "node_access": {
+                "question": "How do I SSH into a Sage node?",
+                "answer": (
+                    "Node SSH access requires approval and the Sage SSH proxy. See "
+                    "https://docs.sagecontinuum.org/docs/for-users/access-a-node for the full "
+                    "process. Use `waggle-dev-node-WXXX` as the target host once provisioned."
+                ),
+            },
         }
 
     def search_docs(self, query: str, max_results: int = 3) -> List[Tuple[str, str, float]]:

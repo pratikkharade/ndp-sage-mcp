@@ -1,40 +1,77 @@
-version: '3.8'
+# Sage MCP — docker compose configurations
+#
+# By default `docker compose up` starts a laptop-safe server bound to
+# 127.0.0.1:8000 — nothing is reachable from outside your machine. Use a
+# named profile to run one of the other configurations:
+#
+#   docker compose up                       # local — 127.0.0.1 only
+#   docker compose --profile cloud up -d    # cloud — 0.0.0.0, healthcheck + restart
+#   docker compose --profile sse   up -d    # legacy SSE transport, 127.0.0.1
+#
+# Variables come from your shell or a `.env` file in the repo root
+# (see .env.example).
+
+x-common-env: &common-env
+  MCP_TRANSPORT: streamable-http
+  MCP_PORT: "8000"
+  MCP_PATH: /mcp
+  LOG_LEVEL: ${LOG_LEVEL:-INFO}
+  PYTHONUNBUFFERED: "1"
+  # Optional Sage credentials — forwarded from your shell / .env
+  SAGE_USER: ${SAGE_USER:-}
+  SAGE_PASS: ${SAGE_PASS:-}
+  SAGE_PROXY_BASE_URL: ${SAGE_PROXY_BASE_URL:-}
+  ADMIN_API_KEY: ${ADMIN_API_KEY:-}
+
+x-healthcheck: &healthcheck
+  test: ["CMD", "sh", "-c", "curl -fsS http://localhost:8000/health"]
+  interval: 30s
+  timeout: 10s
+  retries: 3
+  start_period: 15s
+
 
 services:
+  # ---------------------------------------------------------------------------
+  # DEFAULT — safe for laptops. Bound to localhost, no restart loop.
+  #   docker compose up
+  # ---------------------------------------------------------------------------
   sage-mcp:
-    build: .
-    ports:
-      - "8000:8000"
-    environment:
-      - MCP_HOST=0.0.0.0
-      - MCP_PORT=8000
-      - PYTHONUNBUFFERED=1
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "sh", "-c", "curl -f http://localhost:8000/mcp/ || curl -f http://localhost:8000/"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
-    # Optional: mount local data directory
-    # volumes:
-    #   - ./data:/app/data
-    
-  # Alternative configuration for localhost only (more secure)
-  sage-mcp-local:
     build: .
     ports:
       - "127.0.0.1:8000:8000"
     environment:
-      - MCP_HOST=127.0.0.1
-      - MCP_PORT=8000
-      - PYTHONUNBUFFERED=1
+      <<: *common-env
+      MCP_HOST: 0.0.0.0     # bind inside the container; host publishes to 127.0.0.1 only
+    healthcheck: *healthcheck
+
+  # ---------------------------------------------------------------------------
+  # CLOUD — public deployment (this is what runs mcp.sagecontinuum.org).
+  #   docker compose --profile cloud up -d
+  # ---------------------------------------------------------------------------
+  sage-mcp-cloud:
+    build: .
+    profiles: ["cloud"]
+    ports:
+      - "8000:8000"
+    environment:
+      <<: *common-env
+      MCP_HOST: 0.0.0.0
+      SAGE_PROXY_BASE_URL: ${SAGE_PROXY_BASE_URL:-https://mcp.sagecontinuum.org}
     restart: unless-stopped
-    profiles:
-      - local
-    healthcheck:
-      test: ["CMD", "sh", "-c", "curl -f http://localhost:8000/mcp/ || curl -f http://localhost:8000/"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 10s 
+    healthcheck: *healthcheck
+
+  # ---------------------------------------------------------------------------
+  # SSE — legacy Server-Sent Events transport for older MCP clients.
+  #   docker compose --profile sse up
+  # ---------------------------------------------------------------------------
+  sage-mcp-sse:
+    build: .
+    profiles: ["sse"]
+    ports:
+      - "127.0.0.1:8001:8000"
+    environment:
+      <<: *common-env
+      MCP_TRANSPORT: sse
+      MCP_HOST: 0.0.0.0
+    healthcheck: *healthcheck

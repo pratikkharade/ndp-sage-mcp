@@ -1,14 +1,43 @@
 # Sage MCP Server
 
-A Model Context Protocol (MCP) server for interacting with the Sage Grande Testbed, cyberinfrastructure for AI@Edge. This server provides tools, resources, and prompts for querying sensor data, submitting jobs, and managing Sage nodes.
+A [Model Context Protocol](https://modelcontextprotocol.io/) server for the
+[Sage Grande Testbed](https://sagecontinuum.org/) — cyberinfrastructure for
+AI@Edge. It exposes ~30 MCP tools, resources, and prompts for querying sensor
+data, submitting edge-computing jobs, discovering plugins, and browsing Sage
+documentation from any MCP-compatible client (Claude Desktop, Cursor,
+custom agents, etc.).
 
-## Quick Setup with Cursor IDE
+Built on [FastMCP 2.10+](https://github.com/jlowin/fastmcp) and the
+[MCP SDK 1.12+](https://github.com/modelcontextprotocol/python-sdk); supports
+`stdio`, `sse`, and `streamable-http` transports.
 
-The easiest way to use Sage MCP is through Cursor IDE with our hosted server:
+---
 
-### 1. Configure Cursor MCP
+## Choose your setup
 
-Add this to your Cursor MCP configuration file (`~/.cursor/mcp.json`):
+There are three ways to run this — pick the one that fits.
+
+| # | Path | Who it's for | You need |
+|---|------|--------------|----------|
+| 1 | [**Hosted (mcp.sagecontinuum.org)**](#1-hosted-mcpsagecontinuumorg) | Everyone. Zero install. | An MCP client + a Sage token. |
+| 2 | [**Local — stdio**](#2-local--stdio-for-ide-clients) | IDE users who want to run the server themselves. | Python 3.11+ and this repo. |
+| 3 | [**Local — HTTP**](#3-local--http-for-development-or-non-ide-clients) | Devs, custom agents, curl testing. | Python 3.11+ or Docker. |
+
+All three expose the exact same tools. The only difference between hosted and
+local is *how much data you can reach*: without Sage credentials, every tool
+still runs but falls back to **public data only**. See
+[Authentication & credentials](#authentication--credentials) for how to add
+your token.
+
+---
+
+## 1. Hosted (mcp.sagecontinuum.org)
+
+The server is already running at `https://mcp.sagecontinuum.org/mcp`. Point
+any MCP client at it — no install needed.
+
+**Cursor** (`~/.cursor/mcp.json`) or **Claude Desktop**
+(`~/Library/Application Support/Claude/claude_desktop_config.json` on macOS):
 
 ```json
 {
@@ -16,289 +45,269 @@ Add this to your Cursor MCP configuration file (`~/.cursor/mcp.json`):
     "sage": {
       "url": "https://mcp.sagecontinuum.org/mcp",
       "headers": {
-        "Authorization": "Bearer {username}:{auth_token}"
+        "Authorization": "Bearer YOUR_USERNAME:YOUR_ACCESS_TOKEN"
       }
     }
   }
 }
 ```
 
-### 2. Get Your Sage Credentials
+Get `YOUR_ACCESS_TOKEN` from
+<https://portal.sagecontinuum.org/account/access>. The `Bearer` value must be
+in `username:token` form for anything beyond public data.
 
-1. Visit [Sage Portal Access Credentials](https://portal.sagecontinuum.org/account/access)
-2. Sign in with your Sage account
-3. Copy your access token
-4. Replace `{username}` with your Sage username
-5. Replace `{auth_token}` with your access token
+Restart your client, then ask natural questions:
 
-### 3. Start Using Sage MCP
+> "Show me temperature readings from node W023 in the last hour."
+> "Find nodes in Chicago with recent camera images."
+> "What's the highest temperature recorded today across all nodes?"
 
-Once configured, you can ask Cursor natural language questions about Sage data:
+---
 
-```
-"Show me temperature readings from node W023 in the last hour"
-"Find nodes in Chicago with recent camera images"
-"What's the highest temperature recorded today across all nodes?"
-```
+## 2. Local — stdio (for IDE clients)
 
-See the [Examples Guide](docs/EXAMPLES.md) for more query examples.
+Run the server as a subprocess of your IDE. Nothing binds to a network port.
+This is the most private mode — data and credentials never leave your machine.
 
-## Features
+**Install:**
 
-- **Sensor Data Queries**: Access environmental, IIO, and other sensor data from Sage nodes
-- **Job Management**: Submit, monitor, and manage edge computing jobs
-- **Plugin System**: Work with Sage plugins and edge applications
-- **Documentation**: Built-in Sage documentation and FAQ system
-- **Authentication Support**: Support for protected data access with user tokens
-- **Natural Language Queries**: Query data using natural language descriptions
-
-## Documentation
-
-Comprehensive documentation is available in the `docs/` folder:
-
-- **[Getting Started Guide](docs/GETTING_STARTED.md)** - Complete setup and usage guide
-- **[Authentication Guide](docs/AUTHENTICATION.md)** - Detailed authentication implementation
-- **[Custom Functions Guide](docs/CUSTOM_FUNCTIONS.md)** - How to add custom functionality
-- **[Docker Deployment](docs/DOCKER_DEPLOY.md)** - Containerized deployment instructions
-- **[LLM Integration](docs/llms.md)** - Language model and AI integration details
-
-## Authentication
-
-The server supports authentication for accessing protected Sage data through **HTTP headers and query parameters only**.
-
-### Token Format
-For protected data access, use the format: `username:access_token`
-- Get your access token from: https://portal.sagecontinuum.org/account/access
-- Format: `your_username:your_access_token`
-
-### 1. Authorization Header (Recommended)
-Use HTTP Authorization header with Basic auth:
 ```bash
-# Basic Auth with username:token
-curl -H "Authorization: Basic $(echo -n 'username:token' | base64)" \
-     "http://localhost:8000/mcp/..."
-
-# Or Bearer token
-curl -H "Authorization: Bearer username:token" \
-     "http://localhost:8000/mcp/..."
+git clone https://github.com/waggle-sensor/sage-mcp.git
+cd sage-mcp
+pip install -r requirements.txt
+cp .env.example .env       # edit and add SAGE_USER / SAGE_PASS if you have them
 ```
 
-### 2. Custom Header
-Use the custom X-SAGE-Token header:
-```bash
-curl -H "X-SAGE-Token: username:token" \
-     "http://localhost:8000/mcp/..."
+**Wire it into Cursor/Claude Desktop:**
+
+```json
+{
+  "mcpServers": {
+    "sage-local": {
+      "command": "/absolute/path/to/sage-mcp/scripts/run-local-stdio.sh",
+      "env": {
+        "SAGE_USER": "your-sage-username",
+        "SAGE_PASS": "your-sage-access-token"
+      }
+    }
+  }
+}
 ```
 
-### 3. Query Parameter
-Pass token as a query parameter:
-```bash
-curl "http://localhost:8000/mcp/...?token=username:token"
-```
+`env:` values here override anything in `.env` — useful when you want
+different tokens per IDE profile. Omit them entirely to run against public
+data only.
 
-### Getting Your Access Token
-1. Visit [Sage Portal Access Credentials](https://portal.sagecontinuum.org/account/access)
-2. Sign in with your Sage account
-3. Copy your access token from the credentials section
-4. For protected data, ensure you have:
-   - A valid Sage account
-   - Signed the Data Use Agreement
-   - Appropriate permissions for the data you're accessing
+---
 
-### Token Requirements
-For protected data access, ensure you have:
-- Just the token: `your_token_here`
-- Username and token: `username:your_token_here`
+## 3. Local — HTTP (for development or non-IDE clients)
 
-## Image Proxy
+Bind the server to a local port. Useful for `curl`, custom agents, browser
+extensions, or anything that connects to a URL rather than spawning a
+subprocess.
 
-The server includes an image proxy endpoint that allows authenticated access to Sage images:
+### Option A — bare Python
 
-### HTTP Endpoint
-```
-GET /proxy/image?url=<encoded_sage_url>&token=<optional_token>
-```
-
-### Authentication Methods (in priority order)
-1. **Environment Variables** (recommended - like the Sage Python examples):
-   ```bash
-   export SAGE_USER=your_username
-   export SAGE_PASS=your_password
-   ```
-
-2. **Token parameter** in `username:password` format:
-   ```bash
-   curl "http://localhost:8000/proxy/image?url=...&token=username:password"
-   ```
-
-3. **Bearer token** for simple access tokens:
-   ```bash
-   curl "http://localhost:8000/proxy/image?url=...&token=your_access_token"
-   ```
-
-### MCP Tool
-Use the `get_image_proxy_url()` tool to generate proxy URLs:
-```python
-# Get a proxy URL for a Sage image
-proxy_url = get_image_proxy_url("https://storage.sagecontinuum.org/api/v1/data/sage/...")
-```
-
-### Features
-- **Multiple Auth Methods**: Environment variables, username:password tokens, or Bearer tokens
-- **Security**: Only allows Sage storage URLs
-- **Caching**: Images are cached for 1 hour for better performance
-- **Error Handling**: Proper HTTP status codes for authentication and access errors
-
-## Installation
-
-1. Clone this repository
-2. Install dependencies:
 ```bash
 pip install -r requirements.txt
-
-# Test that all dependencies are properly installed
-python test_dependencies.py
+cp .env.example .env       # optional
+./scripts/run-local-http.sh
 ```
 
-## Usage
-
-### Starting the Server
+Server is now on `http://127.0.0.1:8000/mcp`. Quick sanity check:
 
 ```bash
-python sage_mcp.py
+curl http://127.0.0.1:8000/health
+# {"status":"ok"}
 ```
 
-The server will start on `http://localhost:8000/mcp` by default.
-
-### Environment Variables
-
-- `MCP_HOST`: Host to bind to (default: `0.0.0.0`)
-- `MCP_PORT`: Port to bind to (default: `8000`)
-
-### Example Usage with Authentication
+### Option B — Docker
 
 ```bash
-# Method 1: Using MCP tools (recommended)
-# Start the server
-python sage_mcp.py
-# In your MCP client, call: set_authentication_token("username:your_access_token_here")
-# Then use any data querying tool
-
-# Method 2: Environment variable
-export SAGE_USER_TOKEN="your_access_token_here"
-python sage_mcp.py
-# All tools will automatically use the token for protected data
+cp .env.example .env       # optional
+docker compose up          # http://127.0.0.1:8000/mcp — laptop-safe default
 ```
 
-## Available Tools
+The default `docker compose up` publishes only to `127.0.0.1`. To expose it
+on all interfaces (cloud deployment), use the `cloud` profile:
 
-### Authentication Tools
-- `set_authentication_token(username, token)` - Set your Sage authentication credentials (per-session)
-- `set_authentication_token_legacy(token)` - Set token in legacy format (deprecated)
-- `get_authentication_status()` - Check if an authentication token is set for this session
-- `list_active_sessions()` - List all active authenticated sessions (admin/debug tool)
-
-### Sensor Data Tools
-- `get_node_all_data(node_id, time_range)` - Get all sensor data for a node
-- `get_node_iio_data(node_id, time_range)` - Get IIO sensor data
-- `get_environmental_summary(node_id, time_range)` - Get environmental data summary
-- `get_node_temperature(node_id, sensor_type)` - Get temperature data
-- `get_temperature_summary(time_range, sensor_type)` - Get temperature summary
-- `search_measurements(pattern, node_id, time_range)` - Search for measurements
-
-### Node Information Tools
-- `list_available_nodes(time_range)` - List active Sage nodes
-- `get_node_info(node_id)` - Get detailed node information
-- `list_all_nodes()` - List all Sage nodes
-- `get_sensor_details(sensor_type)` - Get sensor specifications
-
-### Job Management Tools
-- `submit_sage_job(job_name, nodes, plugin_image, ...)` - Submit custom jobs
-- `submit_plugin_job(plugin_type, job_name, nodes)` - Submit pre-configured plugin jobs
-- `check_job_status(job_id)` - Check job status
-- `query_job_data(job_name, node_id, time_range)` - Query job output data
-
-### Geographic Tools
-- `get_nodes_by_location(location)` - Find nodes by geographic location
-- `get_measurement_stat_by_location(location, measurement_type, stat, ...)` - Get statistics by location
-
-### Plugin Tools
-- `find_plugins_for_task(task_description)` - Find plugins for a task
-- `get_plugin_data(plugin_id, nodes, time_range)` - Query plugin data
-- `query_plugin_data_nl(query)` - Natural language plugin queries
-
-### Image and Cloud Data Tools
-- `get_cloud_images(time_range, node_id)` - Get cloud/sky images
-- `get_image_data(time_range, node_id, plugin_pattern)` - Get image data
-- `get_image_proxy_url(sage_url)` - Get a proxy URL for accessing Sage images with authentication
-
-### Documentation Tools
-- `ask_sage_docs(question)` - Ask questions about Sage documentation
-- `sage_faq(topic)` - Get FAQ answers
-- `search_sage_docs(query)` - Search documentation
-
-## Resources
-
-- `query://{plugin}` - Query data for specific plugins
-- `stats://temperature` - Temperature statistics across nodes
-
-## Prompts
-
-- `getting_started_guide()` - Interactive guide for new users
-- `plugin_development_guide()` - Guide for creating plugins
-- `data_analysis_guide()` - Guide for data analysis
-- `troubleshooting_guide()` - Troubleshooting help
-
-## Docker Deployment
-
-See [DOCKER_DEPLOY.md](docs/DOCKER_DEPLOY.md) for containerized deployment instructions.
-
-## Development
-
-The server is built using:
-- [FastMCP](https://github.com/jlowin/fastmcp) - MCP server framework
-- [sage-data-client](https://github.com/sagecontinuum/sage-data-client) - Sage data access
-- [pandas](https://pandas.pydata.org/) - Data processing
-
-## Extending with Custom Functions
-
-Want to add your own custom MCP tools to the Sage server? You can easily fork this repository and add custom endpoints:
-
-```python
-@mcp.tool()
-def my_custom_analysis(data_query: str, analysis_type: str = "basic") -> str:
-    """Perform custom analysis on Sage data"""
-    # Your custom logic here
-    # Access Sage data using the existing data_service
-    # Return formatted results
-    return "Analysis results..."
+```bash
+docker compose --profile cloud up -d
 ```
 
-For detailed instructions on forking, adding custom functions, and deploying your enhanced server, see our [Custom Functions Guide](docs/CUSTOM_FUNCTIONS.md).
+For older MCP clients that only speak SSE:
+
+```bash
+docker compose --profile sse up   # http://127.0.0.1:8001/sse
+```
+
+### Point a client at your local server
+
+```json
+{
+  "mcpServers": {
+    "sage-local-http": {
+      "url": "http://127.0.0.1:8000/mcp"
+    }
+  }
+}
+```
+
+---
+
+## Authentication & credentials
+
+The server never *requires* a Sage token — it just does less without one.
+
+| Scenario | What works | What doesn't |
+|----------|------------|--------------|
+| No token | Public sensor data, node listings, docs, plugin discovery, image proxy for public images | Protected datasets, `/proxy/image` for restricted content, job submission (`sesctl` still needs a real token) |
+| `username:token` provided | Everything the token's Sage account has access to | Anything not shared with your account |
+
+**How to provide a token, in order of preference:**
+
+1. **`.env` file** (`SAGE_USER=…` + `SAGE_PASS=…`) — picked up by both
+   `./scripts/run-local-http.sh` and `./scripts/run-local-stdio.sh` and by
+   `docker compose`.
+2. **Per-request HTTP header** — for the hosted server or any HTTP transport:
+   - `Authorization: Bearer username:token` (recommended)
+   - `Authorization: Basic <base64(username:token)>`
+   - `X-SAGE-Token: username:token`
+3. **Query parameter** — `?token=username:token` as a last resort (shows up
+   in server logs, so avoid for anything sensitive).
+
+Get your token from
+<https://portal.sagecontinuum.org/account/access>. Access to protected data
+also requires signing the Sage Data Use Agreement.
+
+---
+
+## Configuration reference
+
+Every option is an environment variable — see [`.env.example`](.env.example)
+for the full list with comments.
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `MCP_TRANSPORT` | `streamable-http` | `stdio` / `sse` / `streamable-http` / `http` (alias) |
+| `MCP_HOST` | `0.0.0.0` | Bind address (network transports only) |
+| `MCP_PORT` | `8000` | Bind port (network transports only) |
+| `MCP_PATH` | `/mcp` | HTTP path (streamable-http only) |
+| `LOG_LEVEL` | `INFO` | Python logging level |
+| `SAGE_USER`, `SAGE_PASS` | — | Basic auth for `/proxy/image` |
+| `SAGE_PROXY_BASE_URL` | `http://localhost:8000` | Public URL prefix in generated proxy links |
+| `ADMIN_API_KEY` | — | Required to hit `/analytics/*` |
+| `SAGE_MCP_SKIP_REGISTRY_REFRESH` | — | Skip ECR call on startup (offline/CI) |
+
+---
+
+## HTTP endpoints (non-MCP)
+
+| Path | Auth | Purpose |
+|------|------|---------|
+| `GET /health` | none | Liveness / readiness probe |
+| `GET /proxy/image?url=…` | `SAGE_USER`/`SAGE_PASS` or per-request token | Authenticated image proxy to `storage.sagecontinuum.org` |
+| `GET /analytics/summary` | admin key | Aggregate usage counts |
+| `GET /analytics/users` | admin key | Per-user stats |
+| `GET /analytics/tools` | admin key | Per-tool stats |
+| `GET /analytics/user/{id}` | admin key | One user + their tool usage |
+| `GET /analytics/activity` | admin key | Recent activity feed (`?limit=`) |
+
+Admin API key is accepted via `X-Admin-API-Key` header,
+`Authorization: Bearer <key>`, or `?api_key=<key>`.
+
+---
+
+## Tools, resources & prompts
+
+29 tools, 2 resources, 7 prompts. Highlights:
+
+- **Sensor data:** `get_node_all_data`, `get_node_iio_data`,
+  `get_environmental_summary`, `list_available_nodes`, `search_measurements`,
+  `get_node_temperature`, `get_temperature_summary`
+- **Node metadata:** `get_node_info`, `list_all_nodes`, `get_sensor_details`
+- **Jobs:** `submit_sage_job`, `submit_plugin_job`, `submit_multi_plugin_job`,
+  `check_job_status`, `query_job_data`, `force_remove_job`, `suspend_job`
+- **Geography:** `get_nodes_by_location`, `get_measurement_stat_by_location`
+- **Plugins:** `find_plugins_for_task`, `get_plugin_data`, `query_plugin_data_nl`,
+  `create_plugin`
+- **Images:** `get_cloud_images`, `get_image_data`, `get_image_proxy_url`
+- **Docs:** `ask_sage_docs`, `sage_faq`, `search_sage_docs`
+- **Resources:** `query://{plugin}`, `stats://temperature`
+- **Prompts:** `getting_started_guide`, `plugin_development_guide`,
+  `data_analysis_guide`, `troubleshooting_guide`, and three "suggest" prompts.
+
+More docs in the `docs/` folder — [Getting Started](docs/GETTING_STARTED.md),
+[Authentication](docs/AUTHENTICATION.md),
+[Custom Functions](docs/CUSTOM_FUNCTIONS.md),
+[Docker Deployment](docs/DOCKER_DEPLOY.md).
+
+---
 
 ## Testing
 
-Testing scripts are located in the `tests/` folder:
-
 ```bash
-# Test authentication functionality
-python tests/test_auth.py
-
-# Test dependencies
-python tests/test_dependencies.py
-
-# Test image proxy functionality
-python tests/test_image_proxy.py
-
-# Test Sage authentication
-python tests/test_sage_auth.py
-
-# Run server tests
-python tests/test_server.py
+pip install -r requirements.txt
+python -m pytest tests/          # 61 tests, no network required
 ```
 
-The authentication test will verify all supported authentication methods (headers and query parameters) work correctly.
+The test suite mocks `sage_data_client` and the ECR registry — nothing hits
+Sage's servers during CI. Legacy interactive smoke scripts (`test_auth.py`,
+`test_server.py`, `test_image_proxy.py`, ...) still work as manual tests;
+they're excluded from `pytest` collection via `pytest.ini`.
+
+---
+
+## Extending
+
+Add a tool by decorating a function in one of the modules under
+`sage_mcp_server/tools/`:
+
+```python
+# sage_mcp_server/tools/sensor_tools.py
+
+@mcp.tool
+def my_custom_analysis(data_query: str, analysis_type: str = "basic") -> str:
+    """Perform a custom analysis on Sage data."""
+    df = data_service.query_data(...)
+    return f"Analysis results: ..."
+```
+
+See [Custom Functions Guide](docs/CUSTOM_FUNCTIONS.md) for the full workflow
+(fork → add → deploy).
+
+---
+
+## Project layout
+
+```
+sage_mcp.py                          # 30-line entrypoint; exposes `mcp`
+sage_mcp_server/                     # FastMCP factory + services
+├── server.py                        # build_server(), main()
+├── auth.py                          # HTTP request auth extraction
+├── analytics_service.py             # in-memory analytics
+├── data_service.py                  # sage-data-client wrapper
+├── docs_helper.py                   # docs search + FAQ
+├── job_service.py                   # sesctl wrapper
+├── job_templates.py                 # pre-baked plugin job templates
+├── models.py                        # pydantic v2 domain models
+├── plugin_generator.py              # cookiecutter-style plugin scaffolding
+├── plugin_metadata.py               # ECR plugin registry
+├── plugin_query_service.py          # NL plugin query
+├── plugin_registry.py               # measurement/plugin catalog
+├── utils.py                         # time parsing, timestamp formatting
+└── tools/                           # MCP tools split by concern
+    ├── sensor_tools.py
+    ├── job_tools.py
+    ├── geo_tools.py
+    ├── plugin_tools.py
+    ├── docs_tools.py
+    ├── prompts.py
+    └── http_routes.py               # /health, /analytics/*, /proxy/image
+```
+
+---
 
 ## License
 
-This project is licensed under the MIT License.
+MIT. See `LICENSE`.
