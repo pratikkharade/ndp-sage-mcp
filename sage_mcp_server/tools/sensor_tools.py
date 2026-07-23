@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import logging
+from pathlib import Path
 from typing import Any, Dict
 
 import numpy as np
 import pandas as pd
 import requests
+import sage_data_client
 
 from ..data_service import SageDataService
 from ..models import DataType, NodeID, TimeRange
@@ -127,6 +129,108 @@ def register(mcp, data_service: SageDataService) -> None:
         except Exception as e:
             logger.error(f"Error getting all data for node {node_id}: {e}", exc_info=True)
             return f"Error getting all data for node {node_id}: {e}"
+
+    @mcp.tool
+    def export_sage_query_csv(
+        output_path: str,
+        time_range: str = "-1h",
+        node_id: str = "",
+        plugin: str = "",
+        measurement: str = "",
+        aggregate: str = "",
+        aggregate_window: str = "",
+        max_records: int = 10000,
+    ) -> str:
+        """Export a filtered Sage query to a local CSV file.
+
+        This is a general-purpose export for scalar measurements and Beehive
+        upload records. At least one of node_id, plugin, or measurement is
+        required. Set both ``aggregate`` (for example ``mean``) and
+        ``aggregate_window`` (for example ``1h``) to request server-side
+        time-window aggregation before export.
+        """
+        try:
+            if max_records < 1 or max_records > 1_000_000:
+                return "max_records must be between 1 and 1000000."
+            if bool(aggregate) != bool(aggregate_window):
+                return (
+                    "aggregate and aggregate_window must be provided together "
+                    "or both left empty."
+                )
+
+            filter_params: Dict[str, Any] = {}
+            if node_id:
+                filter_params["vsn"] = str(NodeID(value=node_id))
+            if plugin:
+                filter_params["plugin"] = (
+                    plugin if ".*" in plugin else f".*{plugin}.*"
+                )
+            if measurement:
+                filter_params["name"] = measurement
+            if not filter_params:
+                return (
+                    "Specify at least one of node_id, plugin, or measurement. "
+                    "An unfiltered Sage archive export is not allowed."
+                )
+
+            start, end = parse_time_range(TimeRange(value=time_range))
+            if aggregate:
+                df = sage_data_client.query(
+                    start=start,
+                    end=end or None,
+                    filter=filter_params,
+                    experimental_func=aggregate,
+                    experimental_window=aggregate_window,
+                )
+            else:
+                df = data_service.query_data(
+                    start,
+                    end,
+                    filter_params,
+                    max_records=max_records,
+                )
+            if df is None or df.empty:
+                return (
+                    f"Sage query returned no records for {filter_params} over "
+                    f"{time_range}; no CSV was written."
+                )
+            if len(df) > max_records:
+                if "timestamp" in df.columns:
+                    df = (
+                        df.sort_values("timestamp", ascending=False)
+                        .head(max_records)
+                        .sort_values("timestamp")
+                    )
+                else:
+                    df = df.head(max_records)
+
+            path = Path(output_path).expanduser().resolve()
+            if path.suffix.lower() != ".csv":
+                return "output_path must end in .csv."
+            if not path.parent.exists():
+                return f"Output directory does not exist: {path.parent}"
+            df.to_csv(path, index=False)
+
+            observed = ""
+            if "timestamp" in df.columns and len(df):
+                observed = (
+                    f"\nObserved: {safe_timestamp_format(df['timestamp'].min())} "
+                    f"to {safe_timestamp_format(df['timestamp'].max())}"
+                )
+            aggregation = (
+                f"\nAggregation: {aggregate} per {aggregate_window}"
+                if aggregate
+                else ""
+            )
+            return (
+                f"Exported {len(df)} Sage record(s) to {path}\n"
+                f"Query: {filter_params}\n"
+                f"Columns ({len(df.columns)}): {', '.join(map(str, df.columns))}"
+                f"{observed}{aggregation}"
+            )
+        except Exception as e:
+            logger.error(f"Error exporting Sage query to CSV: {e}")
+            return f"Error exporting Sage query to CSV: {e}"
 
     @mcp.tool
     def get_node_iio_data(node_id: str, time_range: str = "-30m") -> str:
