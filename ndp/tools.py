@@ -572,6 +572,98 @@ def register(mcp, data_service, client: Optional[NDPClient] = None) -> None:
         )
 
     # ------------------------------------------------------------------
+    # Resources — add to an existing dataset
+    # ------------------------------------------------------------------
+
+    @mcp.tool
+    async def ndp_add_resource(
+        dataset_name: str,
+        resource_url: str,
+        resource_name: str = "",
+        file_type: str = "",
+        description: str = "",
+        confirm: bool = False,
+    ) -> str:
+        """Add a single URL resource to an existing NDP dataset, by name.
+
+        Resolves the dataset by its exact name in the configured catalog
+        (NDP_SERVER), then PATCH-adds the URL as a new resource. The URL is
+        referenced, not copied, and existing resources are preserved (the patch
+        merges). If the URL is already on the dataset, nothing is added.
+        Requires confirm=True to write.
+
+        Use this when the dataset already exists and you just want to attach one
+        more file/stream by URL. To create a new dataset from a URL, use
+        ndp_register_url instead. file_type is an optional hint: stream, CSV,
+        TXT, JSON, or NetCDF.
+        """
+        ndp = _ndp()
+        resource_url = resource_url.strip()
+        if not resource_url.startswith(("http://", "https://")):
+            return (
+                "Add failed: resource_url must be an absolute HTTP(S) URL "
+                "beginning with http:// or https://."
+            )
+
+        try:
+            matches = await ndp.search_datasets([dataset_name], keys=["name"])
+        except NDPError as e:
+            return f"Could not look up {dataset_name!r}: {e}"
+        record = next(
+            (d for d in matches if isinstance(d, dict) and d.get("name") == dataset_name),
+            None,
+        )
+        if record is None:
+            return (
+                f"No dataset named {dataset_name!r} in the {ndp.server} catalog. "
+                "Create it first (e.g. ndp_register_url or ndp_register_from_sage)."
+            )
+        dataset_id = record.get("id")
+        if not dataset_id:
+            return f"Dataset {dataset_name!r} has no dataset ID; cannot patch it."
+
+        existing = record.get("resources") or []
+        existing_urls = {
+            str(r.get("url") or r.get("resource_url"))
+            for r in existing
+            if isinstance(r, dict) and (r.get("url") or r.get("resource_url"))
+        }
+        if resource_url in existing_urls:
+            return (
+                f"{resource_url} is already a resource on {dataset_name!r}; "
+                "nothing to add."
+            )
+
+        display_name = (
+            resource_name.strip()
+            or resource_url.rstrip("/").split("/")[-1]
+            or "resource"
+        )
+        if not confirm:
+            return (
+                f"This will add resource {display_name!r} ({resource_url}) to "
+                f"dataset {dataset_name!r} in the {ndp.server} catalog, keeping its "
+                f"{len(existing)} existing resource(s). Call again with "
+                "confirm=True to proceed."
+            )
+
+        resource: Dict[str, Any] = {"url": resource_url, "name": display_name}
+        if file_type:
+            resource["format"] = file_type
+        if description:
+            resource["description"] = description
+
+        try:
+            await ndp.patch_general_dataset(str(dataset_id), {"resources": [resource]})
+        except NDPError as e:
+            return f"Could not add resource to {dataset_name!r}: {e}"
+        return (
+            f"Added resource {display_name!r} to {dataset_name!r} in the "
+            f"{ndp.server} catalog (now {len(existing) + 1} resources).\n"
+            f"URL: {resource_url}"
+        )
+
+    # ------------------------------------------------------------------
     # Finalize
     # ------------------------------------------------------------------
 
