@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import logging
 import os
+import sys
 
 from sage_mcp_server.server import get_server, main
 
@@ -36,7 +37,23 @@ try:
         "NDP tools attached (target catalog=%s)", os.getenv("NDP_SERVER", "local")
     )
 except Exception:  # pragma: no cover - NDP must never break the Sage server
-    logger.warning("NDP tools not attached; continuing with Sage tools only", exc_info=True)
+    # A silent failure here is indistinguishable from a stale server in the IDE:
+    # the ndp_* tools simply don't appear, with no obvious cause. Make it loud.
+    # Most MCP UIs surface only the tool list (stdout), so shout on stderr and,
+    # when NDP_REQUIRED=1, refuse to start with a degraded toolset.
+    logger.exception("NDP tools FAILED to load")
+    banner = "=" * 72
+    print(banner, file=sys.stderr, flush=True)
+    print(
+        "NDP tools FAILED to load — the ndp_* tools will NOT be available.\n"
+        "See the traceback above for the cause. The Sage tools still work.\n"
+        "Set NDP_REQUIRED=1 to make this a hard startup failure instead.",
+        file=sys.stderr,
+        flush=True,
+    )
+    print(banner, file=sys.stderr, flush=True)
+    if os.getenv("NDP_REQUIRED") == "1":
+        raise
 
 
 if __name__ == "__main__":

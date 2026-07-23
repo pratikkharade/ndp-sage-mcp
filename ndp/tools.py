@@ -338,7 +338,11 @@ def register(mcp, data_service, client: Optional[NDPClient] = None) -> None:
         if plugin:
             filter_params["plugin"] = plugin if ".*" in plugin else f".*{plugin}.*"
         if node_id:
-            filter_params["vsn"] = node_id.upper() if node_id.upper().startswith("W") else f"W{node_id.upper()}"
+            # Accept both bare numbers ("029" -> "W029") and full VSNs of any
+            # node family ("W029", "V031"). Only prepend "W" to a bare number;
+            # never rewrite a VSN that already carries a letter prefix.
+            vsn = node_id.strip().upper()
+            filter_params["vsn"] = f"W{vsn}" if vsn.isdigit() else vsn
         if measurement:
             filter_params["name"] = measurement
         if not filter_params:

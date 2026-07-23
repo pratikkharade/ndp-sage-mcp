@@ -116,6 +116,23 @@ class NDPClient:
         datasets = await self.search_datasets([name], keys=["name"])
         return any(d.get("name") == name for d in datasets)
 
+    async def _activate_dataset(self, dataset_id: str, server: str) -> None:
+        """Flip a freshly-created dataset from CKAN 'draft' to 'active'.
+
+        The EP-API creates datasets in 'draft' state, which are hidden from
+        package_list and search until activated. Best-effort: never fail the
+        caller if the patch is rejected.
+        """
+        try:
+            await self._call(
+                "patch_general_dataset", dataset_id, {"state": "active"}, server=server
+            )
+        except NDPError:
+            logger.warning(
+                "Registered %s but could not activate it (still a draft).",
+                dataset_id,
+            )
+
     async def register_general_dataset(self, data: Dict[str, Any]) -> Dict[str, Any]:
         logger.info(
             "Registering NDP dataset %r in org %r (%d resources, server=%s)",
@@ -127,24 +144,9 @@ class NDPClient:
         result = await self._call(
             "register_general_dataset", data, server=self.server
         )
-        # The EP-API creates datasets in CKAN 'draft' state, which are hidden from
-        # package_list and search until activated. Flip them to 'active' so a
-        # registered dataset actually shows up. Best-effort: never fail the whole
-        # registration if this patch is rejected.
         dataset_id = result.get("id") if isinstance(result, dict) else None
         if dataset_id:
-            try:
-                await self._call(
-                    "patch_general_dataset",
-                    dataset_id,
-                    {"state": "active"},
-                    server=self.server,
-                )
-            except NDPError:
-                logger.warning(
-                    "Registered %s but could not activate it (still a draft).",
-                    dataset_id,
-                )
+            await self._activate_dataset(dataset_id, self.server)
         return result
 
     async def patch_general_dataset(
@@ -160,7 +162,13 @@ class NDPClient:
         """Register a dataset against a specific catalog ('local' or 'pre_ckan')."""
         if server not in VALID_SERVERS:
             raise NDPError(f"target {server!r} is invalid; use one of {VALID_SERVERS}.")
-        return await self._call("register_general_dataset", data, server=server)
+        result = await self._call("register_general_dataset", data, server=server)
+        # Same draft->active step as register_general_dataset, against the target
+        # catalog — otherwise a local publish lands as an invisible draft.
+        dataset_id = result.get("id") if isinstance(result, dict) else None
+        if dataset_id:
+            await self._activate_dataset(dataset_id, server)
+        return result
 
     async def publish_to_pre_ckan(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """Register the same dataset against the public PRE-CKAN catalog."""
