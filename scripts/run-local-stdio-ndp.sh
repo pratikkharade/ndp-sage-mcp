@@ -24,7 +24,9 @@ fi
 
 export MCP_TRANSPORT=stdio
 
-if [[ -x .venv/bin/python ]]; then
+if [[ -x venv/bin/python ]]; then
+  exec venv/bin/python sage_ndp_mcp.py
+elif [[ -x .venv/bin/python ]]; then
   exec .venv/bin/python sage_ndp_mcp.py
 else
   exec python3 sage_ndp_mcp.py
