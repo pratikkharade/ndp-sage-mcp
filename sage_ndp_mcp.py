@@ -1,18 +1,20 @@
 #!/usr/bin/env python3
-"""Composition entrypoint: Sage MCP + NDP tools.
+"""Composition entrypoint: Sage MCP + NDP tools + SciDX streaming tools.
 
-This wires the additive NDP tools onto the Sage FastMCP instance *without
-modifying anything in the ``sage_mcp_server`` package*. The Sage server is
-built via its own factory; we then attach the NDP tools to the same instance
-before it runs.
+This wires the additive NDP and streaming tools onto the Sage FastMCP instance
+*without modifying anything in the ``sage_mcp_server`` package*. The Sage server
+is built via its own factory; we then attach the extra tools to the same
+instance before it runs.
 
 It works because ``get_server()`` caches a singleton: we build it, register
-the NDP tools on it, and ``main()`` later re-fetches that same cached instance
-— so the NDP tools are present when the transport starts.
+the NDP + streaming tools on it, and ``main()`` later re-fetches that same
+cached instance — so the added tools are present when the transport starts.
 
 Point your MCP launcher at this file instead of ``sage_mcp.py`` to get the
-NDP tools. Configuration is unchanged (all the same env vars), plus the NDP_*
-and GOOGLE_DRIVE_* vars documented in ``ndp/README.md``.
+NDP and streaming tools. Configuration is unchanged (all the same env vars),
+plus the NDP_* vars documented in ``ndp/README.md`` and ``streaming/README.md``.
+The streaming tools additionally require the ``scidx_streaming_v2`` package
+(``pip install -e streaming_v2``; see init_setup.sh).
 """
 
 from __future__ import annotations
@@ -53,6 +55,34 @@ except Exception:  # pragma: no cover - NDP must never break the Sage server
     )
     print(banner, file=sys.stderr, flush=True)
     if os.getenv("NDP_REQUIRED") == "1":
+        raise
+
+
+# Attach the additive SciDX streaming tools (stream_*) to the same instance.
+try:
+    import streaming
+
+    streaming.register(mcp)
+    logger.info(
+        "Streaming tools attached (target catalog=%s)", os.getenv("NDP_SERVER", "local")
+    )
+except Exception:  # pragma: no cover - streaming must never break the server
+    # Same rationale as the NDP block: a silent failure just makes the stream_*
+    # tools vanish with no obvious cause, so make it loud on stderr.
+    logger.exception("Streaming tools FAILED to load")
+    banner = "=" * 72
+    print(banner, file=sys.stderr, flush=True)
+    print(
+        "Streaming tools FAILED to load — the stream_* tools will NOT be available.\n"
+        "See the traceback above for the cause. The Sage + NDP tools still work.\n"
+        "Most likely: scidx_streaming_v2 is not installed "
+        "(run `pip install -e streaming_v2`).\n"
+        "Set STREAMING_REQUIRED=1 to make this a hard startup failure instead.",
+        file=sys.stderr,
+        flush=True,
+    )
+    print(banner, file=sys.stderr, flush=True)
+    if os.getenv("STREAMING_REQUIRED") == "1":
         raise
 
 

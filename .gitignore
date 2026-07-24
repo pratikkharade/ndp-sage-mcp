@@ -12,3 +12,4 @@ sage_mcp_server/tools/__pycache__/
 google-drive-credentials*.json
 credentials.json
 token.json
+streaming_v2/
