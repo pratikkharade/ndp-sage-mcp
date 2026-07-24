@@ -8,11 +8,14 @@ from __future__ import annotations
 
 import logging
 import time
+from pathlib import Path
 from typing import Any, Dict, List, Literal, Optional, Union
+from urllib.parse import urlparse
 
 from . import registration as reg_core
 from . import staging
 from .client import NDPClient, NDPError
+from .drive import GoogleDriveClient, GoogleDriveError
 from .models import RegistrationPreview, RegistrationResult
 from .registration import beehive_resources, sage_provenance, scan_path
 
@@ -67,18 +70,29 @@ def _resolve_parse_time_range():
     return _fallback
 
 
-def register(mcp, data_service, client: Optional[NDPClient] = None) -> None:
+def register(
+    mcp,
+    data_service,
+    client: Optional[NDPClient] = None,
+    drive_client: Optional[GoogleDriveClient] = None,
+) -> None:
     """Attach NDP tools to `mcp`.
 
     `data_service` is the existing SageDataService (used read-only).
     """
     _client_holder: Dict[str, Any] = {"client": client}
+    _drive_holder: Dict[str, Any] = {"client": drive_client}
     parse_time_range = _resolve_parse_time_range()
 
     def _ndp() -> NDPClient:
         if _client_holder["client"] is None:
             _client_holder["client"] = NDPClient()
         return _client_holder["client"]
+
+    def _drive() -> GoogleDriveClient:
+        if _drive_holder["client"] is None:
+            _drive_holder["client"] = GoogleDriveClient()
+        return _drive_holder["client"]
 
     # ------------------------------------------------------------------
     # Discovery
@@ -302,7 +316,7 @@ def register(mcp, data_service, client: Optional[NDPClient] = None) -> None:
 
         if dry_run or preview.status == "needs_input":
             return _render_preview(preview)
-        return _render_result(await _commit(_ndp(), preview.staged_id))
+        return _render_result(await _commit(_ndp(), preview.staged_id, _drive))
 
     # ------------------------------------------------------------------
     # Registration — from Sage
@@ -391,7 +405,7 @@ def register(mcp, data_service, client: Optional[NDPClient] = None) -> None:
 
         if dry_run or preview.status == "needs_input":
             return _render_preview(preview)
-        return _render_result(await _commit(_ndp(), preview.staged_id))
+        return _render_result(await _commit(_ndp(), preview.staged_id, _drive))
 
     @mcp.tool
     async def ndp_append_from_sage(
@@ -621,7 +635,7 @@ def register(mcp, data_service, client: Optional[NDPClient] = None) -> None:
             preview = reg_core.preview_from_staged(staged_id, reg)
             return _render_preview(preview) + "\n\nCall again with confirm=True to commit."
 
-        return _render_result(await _commit(_ndp(), staged_id))
+        return _render_result(await _commit(_ndp(), staged_id, _drive))
 
     # ------------------------------------------------------------------
     # Publish
@@ -716,12 +730,32 @@ def register(mcp, data_service, client: Optional[NDPClient] = None) -> None:
 # ---------------------------------------------------------------------------
 
 
-async def _commit(ndp: NDPClient, staged_id: str) -> RegistrationResult:
+async def _commit(
+    ndp: NDPClient,
+    staged_id: str,
+    drive_factory=None,
+) -> RegistrationResult:
     reg = staging.get(staged_id)
     if reg is None:
         return RegistrationResult(status="failed", errors=[f"staged id {staged_id} expired"])
 
     warnings = list(reg.warnings)
+
+    local_resources = [
+        resource
+        for resource in reg.resources
+        if _local_resource_path(resource.url) is not None
+    ]
+    if local_resources:
+        try:
+            drive = drive_factory() if drive_factory is not None else GoogleDriveClient()
+            await _upload_local_resources(reg, drive)
+        except GoogleDriveError as e:
+            return RegistrationResult(
+                status="failed",
+                dataset_name=reg.name,
+                errors=[f"Google Drive upload: {e}"],
+            )
 
     # Idempotent organization handling, per the NDP reference notebook.
     try:
@@ -764,6 +798,42 @@ async def _commit(ndp: NDPClient, staged_id: str) -> RegistrationResult:
         server=ndp.server,
         warnings=warnings,
     )
+
+
+def _local_resource_path(url: str) -> Optional[Path]:
+    """Return an absolute local path, or None for HTTP and other URI resources."""
+    parsed = urlparse(url)
+    if parsed.scheme:
+        return None
+    path = Path(url).expanduser()
+    return path.resolve() if path.is_absolute() else None
+
+
+async def _upload_local_resources(reg, drive: GoogleDriveClient) -> None:
+    """Replace staged local resource paths with retry-safe Drive download URLs."""
+    for resource in reg.resources:
+        local_path = _local_resource_path(resource.url)
+        if local_path is None:
+            continue
+
+        original = str(local_path)
+        cached = reg.drive_uploads.get(original)
+        if cached:
+            resource.url = cached["download_url"]
+            continue
+
+        # Drive has no folder hierarchy in a file name. Preserve relative
+        # context from folder registrations while avoiding slash-containing names.
+        drive_name = resource.name.replace("/", "__").replace("\\", "__")
+        uploaded = await drive.upload_file(original, drive_name=drive_name)
+        metadata = uploaded.to_dict()
+        reg.drive_uploads[original] = metadata
+        resource.url = uploaded.download_url
+
+    if reg.drive_uploads:
+        reg.extras.pop("source_path", None)
+        reg.extras["storage_mode"] = "google_drive"
+        reg.extras["drive_files"] = list(reg.drive_uploads.values())
 
 
 def _render_preview(p: RegistrationPreview) -> str:

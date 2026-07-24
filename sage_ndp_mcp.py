@@ -12,7 +12,7 @@ the NDP tools on it, and ``main()`` later re-fetches that same cached instance
 
 Point your MCP launcher at this file instead of ``sage_mcp.py`` to get the
 NDP tools. Configuration is unchanged (all the same env vars), plus the NDP_*
-vars documented in ``ndp/README.md``.
+and GOOGLE_DRIVE_* vars documented in ``ndp/README.md``.
 """
 
 from __future__ import annotations

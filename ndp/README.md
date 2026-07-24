@@ -43,6 +43,19 @@ dataset public is a separate, explicit step (`ndp_publish_dataset`).
 Requires `ndp-ep` (`pip install ndp-ep`). The client wraps the official
 `ndp_ep.APIClient` rather than hand-rolling HTTP.
 
+### Google Drive live smoke test
+
+Once `GOOGLE_DRIVE_FOLDER_ID`, `GOOGLE_APPLICATION_CREDENTIALS`, and
+`GOOGLE_DRIVE_VISIBILITY` are configured in `.env`, verify the destination
+with a real zero-byte CSV upload:
+
+```bash
+./scripts/test-google-drive-upload.sh
+```
+
+The script prints the returned Drive view/download links and intentionally
+leaves the timestamped test file in Drive for inspection.
+
 ## Tools
 
 | Tool | Purpose |

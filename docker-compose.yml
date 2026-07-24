@@ -22,6 +22,11 @@ x-common-env: &common-env
   SAGE_PASS: ${SAGE_PASS:-}
   SAGE_PROXY_BASE_URL: ${SAGE_PROXY_BASE_URL:-}
   ADMIN_API_KEY: ${ADMIN_API_KEY:-}
+  # Google Drive storage used when a confirmed NDP registration contains
+  # local files. Mount the credential file read-only into the container.
+  GOOGLE_DRIVE_FOLDER_ID: ${GOOGLE_DRIVE_FOLDER_ID:-}
+  GOOGLE_DRIVE_VISIBILITY: ${GOOGLE_DRIVE_VISIBILITY:-anyone}
+  GOOGLE_APPLICATION_CREDENTIALS: ${GOOGLE_APPLICATION_CREDENTIALS:-}
 
 x-healthcheck: &healthcheck
   test: ["CMD", "sh", "-c", "curl -fsS http://localhost:8000/health"]
