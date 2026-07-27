@@ -198,6 +198,7 @@ for the full list with comments.
 | `SAGE_PROXY_BASE_URL` | `http://localhost:8000` | Public URL prefix in generated proxy links |
 | `ADMIN_API_KEY` | — | Required to hit `/analytics/*` |
 | `SAGE_MCP_SKIP_REGISTRY_REFRESH` | — | Skip ECR call on startup (offline/CI) |
+| `UPLOAD_CSV_TO_CLOUD` | `false` | Upload exported CSV results to Google Drive instead of writing them locally |
 
 ---
 

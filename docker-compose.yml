@@ -24,6 +24,7 @@ x-common-env: &common-env
   ADMIN_API_KEY: ${ADMIN_API_KEY:-}
   # Google Drive storage used when a confirmed NDP registration contains
   # local files. Mount the credential file read-only into the container.
+  UPLOAD_CSV_TO_CLOUD: ${UPLOAD_CSV_TO_CLOUD:-false}
   GOOGLE_DRIVE_FOLDER_ID: ${GOOGLE_DRIVE_FOLDER_ID:-}
   GOOGLE_DRIVE_VISIBILITY: ${GOOGLE_DRIVE_VISIBILITY:-anyone}
   GOOGLE_APPLICATION_CREDENTIALS: ${GOOGLE_APPLICATION_CREDENTIALS:-}

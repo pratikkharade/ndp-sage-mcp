@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import asyncio
+from pathlib import Path
 
 import pandas as pd
 from fastmcp import FastMCP
 
+from ndp.drive import DriveUpload
 from sage_mcp_server.tools import sensor_tools
 
 
@@ -18,6 +20,7 @@ def _text(result) -> str:
 
 
 def test_export_sage_query_csv_with_aggregation(monkeypatch, tmp_path):
+    monkeypatch.setenv("UPLOAD_CSV_TO_CLOUD", "false")
     frame = pd.DataFrame(
         {
             "timestamp": pd.to_datetime(
@@ -62,3 +65,57 @@ def test_export_sage_query_csv_with_aggregation(monkeypatch, tmp_path):
     assert captured["experimental_func"] == "mean"
     assert captured["experimental_window"] == "1h"
     assert "Exported 2 Sage record" in _text(result)
+
+
+def test_export_sage_query_csv_uploads_to_drive(monkeypatch, tmp_path):
+    frame = pd.DataFrame(
+        {
+            "timestamp": pd.to_datetime(["2026-01-01T00:00:00Z"]),
+            "value": [1.0],
+            "name": ["env.temperature"],
+        }
+    )
+    uploaded = {}
+
+    class FakeDriveClient:
+        async def upload_file(self, local_path, *, drive_name=None):
+            source = Path(local_path)
+            uploaded["name"] = drive_name
+            uploaded["content"] = source.read_text()
+            uploaded["temporary_path"] = source
+            return DriveUpload(
+                file_id="file-1",
+                download_url="https://drive.example/download/file-1",
+                view_url="https://drive.example/view/file-1",
+                name=drive_name,
+            )
+
+    monkeypatch.setenv("UPLOAD_CSV_TO_CLOUD", "true")
+    monkeypatch.setattr(sensor_tools, "GoogleDriveClient", FakeDriveClient)
+    output = tmp_path / "cloud-export.csv"
+    mcp = FastMCP("cloud-export-test")
+    data_service = type(
+        "DataService",
+        (),
+        {"query_data": lambda self, *args, **kwargs: frame.copy()},
+    )()
+    sensor_tools.register(mcp, data_service=data_service)
+
+    result = asyncio.run(
+        mcp.call_tool(
+            "export_sage_query_csv",
+            {
+                "output_path": str(output),
+                "node_id": "W045",
+                "measurement": "env.temperature",
+            },
+        )
+    )
+
+    text = _text(result)
+    assert not output.exists()
+    assert uploaded["name"] == "cloud-export.csv"
+    assert "env.temperature" in uploaded["content"]
+    assert not uploaded["temporary_path"].exists()
+    assert "Uploaded 1 Sage record(s) to Google Drive" in text
+    assert "https://drive.example/download/file-1" in text
