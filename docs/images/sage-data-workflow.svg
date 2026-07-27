@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="390" viewBox="0 0 1200 390" role="img" aria-labelledby="title desc">
+  <title id="title">Sage research data workflow</title>
+  <desc id="desc">A workflow from discovering Sage data through querying, choosing an NDP dataset or live stream, reviewing it, and publishing or consuming the result.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L9,3 z" fill="#627d98"/>
+    </marker>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="3" stdDeviation="4" flood-color="#102a43" flood-opacity=".14"/>
+    </filter>
+  </defs>
+  <rect width="1200" height="390" rx="22" fill="#f6f8fb"/>
+  <text x="600" y="44" text-anchor="middle" font-family="Arial, sans-serif" font-size="25" font-weight="700" fill="#102a43">From Sage observation to reusable research data</text>
+
+  <g font-family="Arial, sans-serif" filter="url(#shadow)">
+    <rect x="35" y="125" width="155" height="105" rx="16" fill="#ffffff" stroke="#3b82f6" stroke-width="2"/>
+    <text x="112" y="165" text-anchor="middle" font-size="18" font-weight="700" fill="#1e3a5f">Discover</text>
+    <text x="112" y="194" text-anchor="middle" font-size="14" fill="#486581">Nodes, sensors,</text>
+    <text x="112" y="214" text-anchor="middle" font-size="14" fill="#486581">plugins, or images</text>
+
+    <rect x="240" y="125" width="155" height="105" rx="16" fill="#ffffff" stroke="#0b7285" stroke-width="2"/>
+    <text x="317" y="165" text-anchor="middle" font-size="18" font-weight="700" fill="#0b5260">Query or observe</text>
+    <text x="317" y="194" text-anchor="middle" font-size="14" fill="#486581">Historical or</text>
+    <text x="317" y="214" text-anchor="middle" font-size="14" fill="#486581">live Sage data</text>
+
+    <rect x="445" y="95" width="220" height="165" rx="18" fill="#fff9e8" stroke="#f59f00" stroke-width="2"/>
+    <text x="555" y="130" text-anchor="middle" font-size="18" font-weight="700" fill="#7c4a03">Choose a path</text>
+    <text x="555" y="172" text-anchor="middle" font-size="14" fill="#486581">Register or update</text>
+    <text x="555" y="194" text-anchor="middle" font-size="14" fill="#486581">an NDP dataset</text>
+    <text x="555" y="224" text-anchor="middle" font-size="14" fill="#486581">Create a filtered</text>
+    <text x="555" y="246" text-anchor="middle" font-size="14" fill="#486581">live stream</text>
+
+    <rect x="715" y="125" width="175" height="105" rx="16" fill="#ffffff" stroke="#9b5de5" stroke-width="2"/>
+    <text x="802" y="165" text-anchor="middle" font-size="18" font-weight="700" fill="#5b2c83">Review</text>
+    <text x="802" y="194" text-anchor="middle" font-size="14" fill="#486581">Metadata, source,</text>
+    <text x="802" y="214" text-anchor="middle" font-size="14" fill="#486581">filters, and contents</text>
+
+    <rect x="940" y="95" width="225" height="165" rx="18" fill="#ecfdf3" stroke="#22a06b" stroke-width="2"/>
+    <text x="1052" y="130" text-anchor="middle" font-size="18" font-weight="700" fill="#14532d">Publish or consume</text>
+    <text x="1052" y="172" text-anchor="middle" font-size="14" fill="#486581">Discover in NDP</text>
+    <text x="1052" y="198" text-anchor="middle" font-size="14" fill="#486581">Consume the stream</text>
+    <text x="1052" y="224" text-anchor="middle" font-size="14" fill="#486581">Append future data</text>
+  </g>
+
+  <line x1="190" y1="177" x2="230" y2="177" stroke="#627d98" stroke-width="3" marker-end="url(#arrow)"/>
+  <line x1="395" y1="177" x2="435" y2="177" stroke="#627d98" stroke-width="3" marker-end="url(#arrow)"/>
+  <line x1="665" y1="177" x2="705" y2="177" stroke="#627d98" stroke-width="3" marker-end="url(#arrow)"/>
+  <line x1="890" y1="177" x2="930" y2="177" stroke="#627d98" stroke-width="3" marker-end="url(#arrow)"/>
+
+  <path d="M1052 270 C1052 335, 555 340, 555 270" fill="none" stroke="#22a06b" stroke-width="2.5" stroke-dasharray="7 6" marker-end="url(#arrow)"/>
+  <text x="805" y="350" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#486581">Repeat as new observations arrive</text>
+</svg>

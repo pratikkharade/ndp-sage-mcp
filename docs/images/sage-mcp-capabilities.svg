@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="430" viewBox="0 0 1100 430" role="img" aria-labelledby="title desc">
+  <title id="title">Sage MCP capability overview</title>
+  <desc id="desc">An AI assistant connects through Sage MCP to existing Sage capabilities and the new National Data Platform and live streaming capabilities.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L9,3 z" fill="#52606d"/>
+    </marker>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="3" stdDeviation="4" flood-color="#102a43" flood-opacity=".15"/>
+    </filter>
+  </defs>
+  <rect width="1100" height="430" rx="22" fill="#f6f8fb"/>
+  <text x="550" y="44" text-anchor="middle" font-family="Arial, sans-serif" font-size="25" font-weight="700" fill="#102a43">Sage MCP capability overview</text>
+
+  <g filter="url(#shadow)">
+    <rect x="45" y="145" width="190" height="120" rx="16" fill="#ffffff" stroke="#829ab1" stroke-width="2"/>
+    <text x="140" y="187" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" font-weight="700" fill="#243b53">AI assistant</text>
+    <text x="140" y="218" text-anchor="middle" font-family="Arial, sans-serif" font-size="15" fill="#486581">Natural-language</text>
+    <text x="140" y="240" text-anchor="middle" font-family="Arial, sans-serif" font-size="15" fill="#486581">requests</text>
+
+    <rect x="315" y="135" width="210" height="140" rx="18" fill="#0b7285"/>
+    <text x="420" y="190" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" font-weight="700" fill="#ffffff">Sage MCP</text>
+    <text x="420" y="222" text-anchor="middle" font-family="Arial, sans-serif" font-size="15" fill="#d8f3f5">One conversational</text>
+    <text x="420" y="244" text-anchor="middle" font-family="Arial, sans-serif" font-size="15" fill="#d8f3f5">interface</text>
+  </g>
+
+  <line x1="235" y1="205" x2="305" y2="205" stroke="#52606d" stroke-width="3" marker-end="url(#arrow)"/>
+
+  <g filter="url(#shadow)" font-family="Arial, sans-serif">
+    <rect x="650" y="72" width="355" height="125" rx="16" fill="#ffffff" stroke="#22a06b" stroke-width="2"/>
+    <text x="827" y="107" text-anchor="middle" font-size="18" font-weight="700" fill="#14532d">National Data Platform tools</text>
+    <text x="827" y="136" text-anchor="middle" font-size="14" fill="#486581">Register, update, and publish</text>
+    <text x="827" y="158" text-anchor="middle" font-size="14" fill="#486581">discoverable datasets</text>
+
+    <rect x="650" y="232" width="355" height="125" rx="16" fill="#ffffff" stroke="#f59f00" stroke-width="2"/>
+    <text x="827" y="267" text-anchor="middle" font-size="18" font-weight="700" fill="#7c4a03">Live streaming tools</text>
+    <text x="827" y="296" text-anchor="middle" font-size="14" fill="#486581">Profile, filter, sample, tail,</text>
+    <text x="827" y="318" text-anchor="middle" font-size="14" fill="#486581">and manage live Sage feeds</text>
+  </g>
+
+  <line x1="525" y1="175" x2="640" y2="135" stroke="#52606d" stroke-width="2.5" marker-end="url(#arrow)"/>
+  <line x1="525" y1="235" x2="640" y2="294" stroke="#52606d" stroke-width="2.5" marker-end="url(#arrow)"/>
+
+  <text x="550" y="402" text-anchor="middle" font-family="Arial, sans-serif" font-size="15" fill="#627d98">The additions connect Sage data discovery to dataset publication and live filtered streams.</text>
+</svg>
