@@ -1,3 +1,15 @@
 .venv/
+venv
+.codex/
+.vscode/
 claude.md
+__pycache__/
+ndp/__pycache__
+sage_mcp_server/__pycache__/
+sage_mcp_server/tools/__pycache__/
+.env
+*-service-account.json
+google-drive-credentials*.json
+credentials.json
+token.json
 streaming_v2/

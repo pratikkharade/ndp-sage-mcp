@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import logging
+import os
+import tempfile
 from pathlib import Path
 from typing import Any, Dict
 
@@ -10,6 +12,8 @@ import numpy as np
 import pandas as pd
 import requests
 import sage_data_client
+
+from ndp.drive import GoogleDriveClient, GoogleDriveError
 
 from ..data_service import SageDataService
 from ..models import DataType, NodeID, TimeRange
@@ -21,6 +25,16 @@ logger = logging.getLogger(__name__)
 SAGE_API_BASE = "https://auth.sagecontinuum.org/api/v-beta"
 SAGE_MANIFESTS_URL = "https://auth.sagecontinuum.org/manifests/"
 SAGE_SENSORS_URL = "https://auth.sagecontinuum.org/sensors/"
+
+
+def _upload_csv_to_cloud() -> bool:
+    """Return whether generated CSV files should be stored in Google Drive."""
+    return os.getenv("UPLOAD_CSV_TO_CLOUD", "false").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
 
 
 def register(mcp, data_service: SageDataService) -> None:
@@ -131,7 +145,7 @@ def register(mcp, data_service: SageDataService) -> None:
             return f"Error getting all data for node {node_id}: {e}"
 
     @mcp.tool
-    def export_sage_query_csv(
+    async def export_sage_query_csv(
         output_path: str,
         time_range: str = "-1h",
         node_id: str = "",
@@ -141,13 +155,15 @@ def register(mcp, data_service: SageDataService) -> None:
         aggregate_window: str = "",
         max_records: int = 10000,
     ) -> str:
-        """Export a filtered Sage query to a local CSV file.
+        """Export a filtered Sage query to CSV.
 
         This is a general-purpose export for scalar measurements and Beehive
         upload records. At least one of node_id, plugin, or measurement is
         required. Set both ``aggregate`` (for example ``mean``) and
         ``aggregate_window`` (for example ``1h``) to request server-side
-        time-window aggregation before export.
+        time-window aggregation before export. When UPLOAD_CSV_TO_CLOUD is
+        true, the CSV is uploaded to Google Drive instead of being retained
+        at output_path; in that mode output_path supplies the Drive filename.
         """
         try:
             if max_records < 1 or max_records > 1_000_000:
@@ -207,9 +223,9 @@ def register(mcp, data_service: SageDataService) -> None:
             path = Path(output_path).expanduser().resolve()
             if path.suffix.lower() != ".csv":
                 return "output_path must end in .csv."
-            if not path.parent.exists():
+            upload_to_cloud = _upload_csv_to_cloud()
+            if not upload_to_cloud and not path.parent.exists():
                 return f"Output directory does not exist: {path.parent}"
-            df.to_csv(path, index=False)
 
             observed = ""
             if "timestamp" in df.columns and len(df):
@@ -222,8 +238,40 @@ def register(mcp, data_service: SageDataService) -> None:
                 if aggregate
                 else ""
             )
+            destination: str
+            if upload_to_cloud:
+                temporary_path: Path | None = None
+                try:
+                    with tempfile.NamedTemporaryFile(
+                        mode="w",
+                        suffix=".csv",
+                        delete=False,
+                        newline="",
+                    ) as temporary:
+                        temporary_path = Path(temporary.name)
+                        df.to_csv(temporary, index=False)
+                    uploaded = await GoogleDriveClient().upload_file(
+                        str(temporary_path),
+                        drive_name=path.name,
+                    )
+                except GoogleDriveError as e:
+                    return f"Error uploading CSV to Google Drive: {e}"
+                finally:
+                    if temporary_path is not None:
+                        temporary_path.unlink(missing_ok=True)
+                destination = (
+                    f"Uploaded {len(df)} Sage record(s) to Google Drive as "
+                    f"{uploaded.name or path.name}\n"
+                    f"Download URL: {uploaded.download_url}"
+                )
+                if uploaded.view_url:
+                    destination += f"\nView URL: {uploaded.view_url}"
+            else:
+                df.to_csv(path, index=False)
+                destination = f"Exported {len(df)} Sage record(s) to {path}"
+
             return (
-                f"Exported {len(df)} Sage record(s) to {path}\n"
+                f"{destination}\n"
                 f"Query: {filter_params}\n"
                 f"Columns ({len(df.columns)}): {', '.join(map(str, df.columns))}"
                 f"{observed}{aggregation}"

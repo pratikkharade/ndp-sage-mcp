@@ -35,6 +35,9 @@ class StagedRegistration:
     questions: List[PendingQuestion] = field(default_factory=list)
     assumptions: List[str] = field(default_factory=list)
     warnings: List[str] = field(default_factory=list)
+    # Original local path -> returned Drive metadata. Entries are written as
+    # each upload succeeds so an NDP failure can be retried without duplicates.
+    drive_uploads: Dict[str, Dict[str, Any]] = field(default_factory=dict)
     created_at: float = field(default_factory=time.time)
 
 

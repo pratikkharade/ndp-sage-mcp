@@ -17,6 +17,8 @@ pyyaml>=6.0.0
 # --- HTTP clients ----------------------------------------------------------
 requests>=2.31.0
 httpx>=0.25.0
+google-api-python-client>=2.0.0
+google-auth>=2.0.0
 
 # --- ASGI stack (transitively required by fastmcp; listed explicitly)
 starlette>=0.36.0
