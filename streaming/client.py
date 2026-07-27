@@ -8,6 +8,9 @@ Config (env), shared with the NDP layer:
     NDP_API_URL    base URL of the NDP endpoint API
     NDP_API_KEY    bearer token (NDP_API_TOKEN accepted as a fallback)
     NDP_SERVER     which catalog to target: 'local' (default) or 'pre_ckan'
+    SAGE_ORG       default organization for the SAGE source ('sage')
+    SAGE_DATASET   default dataset for the SAGE source ('sage')
+    SAGE_RESOURCE  default resource name for the SAGE source ('SAGE Data')
 
 Lifetime model (important):
     A derived stream is only *loaded* while its background producer runs, and
@@ -27,9 +30,14 @@ import logging
 import os
 from typing import Any, Dict, List, Mapping, Optional, Sequence
 
+from dotenv import load_dotenv
+
 from ._kafka_compat import apply_patches as _apply_kafka_patches
 
 logger = logging.getLogger(__name__)
+
+# Load repository/launcher .env values without overriding explicit process env.
+load_dotenv()
 
 # Neutralize the kafka-python 3.0.9 `endpoint_type` bug before any admin client
 # is constructed; otherwise StreamingClient init silently drops its Kafka
@@ -40,9 +48,9 @@ _apply_kafka_patches()
 # The URL and field mapping are SAGE-specific wiring. If a model hallucinated
 # them the stream would silently produce nothing, so they are baked in here and
 # the agent only ever supplies filters + descriptions.
-SAGE_ORG = "sage"
-SAGE_DATASET = "sage"
-SAGE_RESOURCE = "SAGE Data"
+SAGE_ORG = (os.getenv("SAGE_ORG", "sage") or "sage").strip()
+SAGE_DATASET = (os.getenv("SAGE_DATASET", "sage") or "sage").strip()
+SAGE_RESOURCE = (os.getenv("SAGE_RESOURCE", "SAGE Data") or "SAGE Data").strip()
 SAGE_SOURCE_TEMPLATE: Dict[str, Any] = {
     "type": "api_stream",
     "name": SAGE_RESOURCE,
@@ -144,24 +152,35 @@ class StreamingRuntime:
         }
 
     # -- 1. ensure the SAGE source -----------------------------------------
-    async def ensure_sage_source(self) -> Dict[str, Any]:
-        """Idempotently register org 'sage', dataset 'sage', and the api_stream resource.
+    async def ensure_sage_source(
+        self,
+        *,
+        organization: str = SAGE_ORG,
+        dataset: str = SAGE_DATASET,
+        resource: str = SAGE_RESOURCE,
+    ) -> Dict[str, Any]:
+        """Idempotently register the selected org, dataset, and api_stream resource.
 
         The resource is upserted by name, so re-running is safe. Returns the
         handle downstream tools use: ``{dataset, resource, resource_id}``.
         """
+        organization = (organization or SAGE_ORG).strip()
+        dataset = (dataset or SAGE_DATASET).strip()
+        resource = (resource or SAGE_RESOURCE).strip()
         ndp = self._ndp()
         created: List[str] = []
         try:
-            if await ndp.ensure_organization(SAGE_ORG, "SAGE", "Datasets from the SAGE platform"):
+            if await ndp.ensure_organization(
+                organization, organization, "Datasets from the SAGE platform"
+            ):
                 created.append("organization")
-            if not await ndp.dataset_exists(SAGE_DATASET):
+            if not await ndp.dataset_exists(dataset):
                 await ndp.register_general_dataset(
                     {
-                        "name": SAGE_DATASET,
-                        "title": "SAGE",
+                        "name": dataset,
+                        "title": dataset,
                         "notes": "Data from SAGE Cloud",
-                        "owner_org": SAGE_ORG,
+                        "owner_org": organization,
                     }
                 )
                 created.append("dataset")
@@ -169,8 +188,10 @@ class StreamingRuntime:
             raise StreamingError(f"Catalog ensure failed: {exc}") from exc
 
         def _register() -> Mapping[str, Any]:
+            source = dict(SAGE_SOURCE_TEMPLATE)
+            source["name"] = resource
             return self._streaming().register_resource(
-                SAGE_DATASET, dict(SAGE_SOURCE_TEMPLATE), server=self.server
+                dataset, source, server=self.server
             )
 
         try:
@@ -178,8 +199,9 @@ class StreamingRuntime:
         except Exception as exc:
             raise StreamingError(f"Could not register SAGE api_stream resource: {exc}") from exc
         return {
-            "dataset": SAGE_DATASET,
-            "resource": SAGE_RESOURCE,
+            "organization": organization,
+            "dataset": dataset,
+            "resource": resource,
             "resource_id": entry.get("id") if isinstance(entry, Mapping) else None,
             "created": created,
             "server": self.server,

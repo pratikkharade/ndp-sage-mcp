@@ -32,10 +32,9 @@ Typical agent flow: `ensure → profile → create → sample → delete`.
 
 ## Design choices
 
-- **SAGE plumbing is server config, not agent reasoning.** The SSE URL and field
-  `mapping` are baked into `SAGE_SOURCE_TEMPLATE` (`client.py`). The agent only
-  ever supplies **filters** and **descriptions** — it can't hallucinate a URL
-  that would silently yield an empty stream.
+- **SAGE plumbing is server config.** The SSE URL and field `mapping` are baked
+  into `SAGE_SOURCE_TEMPLATE` (`client.py`). Organization, dataset, and resource
+  names default from `.env`; callers may override those names per tool call.
 - **`stream_profile_sage` is the linchpin.** The resource metadata gives field
   *names*; it does not give field *values*. Profiling samples the live feed so an
   agent can see `vsn ∈ {W06C, W029, …}` and filter on real values.
@@ -54,6 +53,9 @@ Reuses the NDP env vars, plus needs the streaming package installed:
 NDP_API_URL=...     # NDP endpoint API base URL
 NDP_API_KEY=...     # bearer token (NDP_API_TOKEN accepted too)
 NDP_SERVER=local    # 'local' or 'pre_ckan'
+SAGE_ORG=sage        # default source organization
+SAGE_DATASET=sage    # default source dataset
+SAGE_RESOURCE=SAGE Data  # default source resource; callers may override all three
 
 pip install -e streaming_v2   # installs scidx_streaming_v2 + Kafka deps (see init_setup.sh)
 ```

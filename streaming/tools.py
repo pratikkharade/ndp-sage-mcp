@@ -25,6 +25,7 @@ from typing import Any, List, Optional
 
 from .client import (
     SAGE_DATASET,
+    SAGE_ORG,
     SAGE_RESOURCE,
     StreamingError,
     StreamingRuntime,
@@ -87,30 +88,38 @@ def register(mcp, ndp_client: Optional[Any] = None) -> None:
     # 1. Ensure the SAGE source is registered
     # ------------------------------------------------------------------
     @mcp.tool
-    async def stream_ensure_sage_source(confirm: bool = False) -> str:
+    async def stream_ensure_sage_source(
+        organization: str = SAGE_ORG,
+        dataset: str = SAGE_DATASET,
+        resource: str = SAGE_RESOURCE,
+        confirm: bool = False,
+    ) -> str:
         """Ensure the SAGE live-stream source is registered in the NDP catalog.
 
-        Idempotently creates the 'sage' organization and 'sage' dataset if
-        missing, then upserts the 'SAGE Data' api_stream resource (the live SSE
-        feed of all SAGE nodes). Safe to call repeatedly — the resource is
-        upserted by name. This is the bootstrap every other stream_* tool
-        depends on. Writes to the configured catalog (NDP_SERVER); requires
-        confirm=True.
+        Names default to SAGE_ORG, SAGE_DATASET, and SAGE_RESOURCE from the
+        environment. Values supplied by the caller override those defaults.
+        Idempotently creates the organization and dataset if missing, then
+        upserts the api_stream resource. Safe to call repeatedly. Writes to the
+        configured catalog (NDP_SERVER); requires confirm=True.
         """
         rt = _rt()
         if not confirm:
             return (
-                "This will ensure org 'sage', dataset 'sage', and the 'SAGE Data' "
+                f"This will ensure org '{organization}', dataset '{dataset}', and the "
+                f"'{resource}' "
                 f"api_stream resource exist in the {rt.server} catalog (idempotent). "
                 "Call again with confirm=True to proceed."
             )
         try:
-            handle = await rt.ensure_sage_source()
+            handle = await rt.ensure_sage_source(
+                organization=organization, dataset=dataset, resource=resource
+            )
         except StreamingError as exc:
             return f"Ensure failed: {exc}"
         created = ", ".join(handle["created"]) if handle["created"] else "nothing new"
         return (
             f"SAGE source ready in the {handle['server']} catalog (created: {created}).\n"
+            f"  organization: {handle['organization']}\n"
             f"  dataset:     {handle['dataset']}\n"
             f"  resource:    {handle['resource']}\n"
             f"  resource_id: {handle['resource_id']}\n"
@@ -168,6 +177,7 @@ def register(mcp, ndp_client: Optional[Any] = None) -> None:
     async def stream_create_derived(
         filters: str,
         description: str = "",
+        organization: str = SAGE_ORG,
         dataset: str = SAGE_DATASET,
         resource: str = SAGE_RESOURCE,
         confirm: bool = False,
@@ -186,6 +196,10 @@ def register(mcp, ndp_client: Optional[Any] = None) -> None:
         A JSON array of expressions/rule-dicts is also accepted. An empty
         `filters` forwards the full SAGE feed (discouraged — high volume).
 
+        `organization`, `dataset`, and `resource` default to their SAGE_*
+        environment values. Values supplied by the caller override them. The
+        selected source is ensured before stream creation.
+
         `description` is stored on the derived resource — write what the stream
         is for; the topic name itself is opaque. Requires confirm=True. Free the
         stream later with stream_delete.
@@ -200,12 +214,16 @@ def register(mcp, ndp_client: Optional[Any] = None) -> None:
                     "Kafka topic. Add at least one filter unless you really want everything."
                 )
             return (
-                f"This will create a derived Kafka stream from [{dataset} / {resource}] "
+                f"This will ensure [{organization} / {dataset} / {resource}], then "
+                "create a derived Kafka stream from it "
                 f"with filters:\n{preview_filters}\n"
                 f"description: {description or '(none)'}{warn}\n"
                 "Call again with confirm=True to create it."
             )
         try:
+            await _rt().ensure_sage_source(
+                organization=organization, dataset=dataset, resource=resource
+            )
             result = await _rt().create_derived(
                 filter_exprs=exprs,
                 description=description or None,

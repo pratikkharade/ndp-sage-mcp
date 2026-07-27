@@ -11,6 +11,7 @@ pandas>=2.0.0
 numpy>=1.24.0
 
 # --- Validation / config ---------------------------------------------------
+python-dotenv>=1.0.0
 pydantic>=2.5.0
 pyyaml>=6.0.0
 
