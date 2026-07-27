@@ -1,25 +1,30 @@
-# Sage MCP: Project Overview
+# Sage-NDP-SciDx MCP: Project Overview
 
-## The existing Sage MCP
+## Sage MCP: Existing Capabilities
 
-The Sage Model Context Protocol server gives AI assistants a natural-language interface to the Sage edge-computing infrastructure. It can discover nodes and sensors, query measurements, inspect plugins and images, manage edge jobs, search documentation, and locate data by place. It supports public and authenticated access through several connection methods.
+The Sage Model Context Protocol (MCP) server gives AI assistants a natural-language interface to the Sage edge-computing infrastructure. It can discover nodes and sensors, query measurements, inspect plugins and images, manage edge jobs, search documentation, and locate data by place. It supports public and authenticated access through several connection methods.
 
-The original server is strong at finding and analyzing Sage data, but it does not cover the full research data lifecycle. Additional work is needed to preserve results as reusable datasets, publish them for discovery, or turn the full live feed into focused streams.
 
-![Overview of the existing Sage MCP and its new National Data Platform and live streaming capabilities](docs/images/sage-mcp-capabilities.svg)
+![Overview of the existing Sage MCP tools for data, nodes, plugins, jobs, documentation, and location search](docs/images/sage-existing-capabilities.svg)
 
-## Why we added new tools
+## Why we need this
 
-The new tools connect Sage to the National Data Platform and support the work that follows a query. Users can now:
+The existing Sage MCP helps users find and query data, but the work often continues outside Sage. Researchers still need to organize results, record where they came from, publish them for discovery, and work with live data without processing the entire Sage feed. Doing this manually across separate systems takes time, makes workflows difficult to repeat, and increases the risk of incomplete provenance or inconsistent metadata.
 
-- Register Sage results and other resources as datasets.
+## Our Solution: NDP and Live Streaming Tools
+
+This project proposes new tools that extend the Sage MCP workflow to include National Data Platform's (NDP) and Scientific Data Exchange's (SciDx) capabilities for dataset registration, publication, and live streaming. The new tools allow users to seamlessly integrate Sage data with the NDP and SciDx ecosystems. Users can now:
+
+- Register on NDP,  Sage results and other resources as datasets.
 - Record their source, query, time range, nodes, and plugins.
 - Review metadata before registration or publication.
 - Add resources as new data becomes available.
 - Publish to the appropriate NDP catalog.
 - Create and validate filtered streams from the live Sage feed.
 
-This reduces manual handoffs and creates a clearer, repeatable path from observation to reusable research data.
+These changes reduce manual handoffs and create a clearer, repeatable path from observation to reusable research data.
+
+![Overview of Sage MCP extended with National Data Platform and live streaming capabilities](docs/images/sage-mcp-capabilities.svg)
 
 ## National Data Platform tools
 
@@ -52,7 +57,7 @@ These tools turn the full Sage event feed into smaller, purpose-specific streams
 
 Profiling exposes real node identifiers, measurement names, and values before filters are created. Sampling and tailing then confirm that the derived stream contains the intended records.
 
-## How the additions improve the MCP
+## Benefits and Improvements
 
 ![Workflow from discovering Sage data to reviewing, publishing, and reusing it](docs/images/sage-data-workflow.svg)
 
@@ -69,7 +74,7 @@ The additions make Sage data more reusable, traceable, and easier to share. Prov
 
 The extensions are additive: if NDP or streaming services are unavailable, the core Sage MCP can continue operating.
 
-## Future scope
+## Scope for Future Development
 
 Future work can make the system more durable, scalable, and secure:
 

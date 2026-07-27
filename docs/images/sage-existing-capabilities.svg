@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="700" height="1000" viewBox="0 0 700 1000" role="img" aria-labelledby="title desc">
+  <title id="title">Existing Sage MCP capabilities</title>
+  <desc id="desc">A vertical diagram showing an AI assistant connecting to Sage MCP, which provides sensor data, node discovery, plugins and images, edge jobs, documentation, and location search.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L9,3 z" fill="#627d98"/>
+    </marker>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="3" stdDeviation="4" flood-color="#102a43" flood-opacity=".14"/>
+    </filter>
+  </defs>
+
+  <rect width="700" height="1000" rx="22" fill="#f6f8fb"/>
+  <text x="350" y="45" text-anchor="middle" font-family="Arial, sans-serif" font-size="25" font-weight="700" fill="#102a43">Existing Sage MCP capabilities</text>
+
+  <g filter="url(#shadow)" font-family="Arial, sans-serif">
+    <rect x="235" y="75" width="230" height="95" rx="16" fill="#ffffff" stroke="#829ab1" stroke-width="2"/>
+    <text x="350" y="112" text-anchor="middle" font-size="19" font-weight="700" fill="#243b53">AI assistant</text>
+    <text x="350" y="142" text-anchor="middle" font-size="14" fill="#486581">Natural-language request</text>
+
+    <rect x="220" y="220" width="260" height="110" rx="18" fill="#0b7285" stroke="#0b7285" stroke-width="2"/>
+    <text x="350" y="264" text-anchor="middle" font-size="23" font-weight="700" fill="#ffffff">Sage MCP</text>
+    <text x="350" y="297" text-anchor="middle" font-size="14" fill="#d8f3f5">One interface to Sage services</text>
+
+    <rect x="145" y="385" width="485" height="75" rx="14" fill="#ffffff" stroke="#3b82f6" stroke-width="2"/>
+    <text x="180" y="416" font-size="17" font-weight="700" fill="#1e3a5f">Sensor data</text>
+    <text x="180" y="441" font-size="13" fill="#486581">Query current and historical measurements and summaries</text>
+
+    <rect x="145" y="480" width="485" height="75" rx="14" fill="#ffffff" stroke="#22a06b" stroke-width="2"/>
+    <text x="180" y="511" font-size="17" font-weight="700" fill="#14532d">Node discovery</text>
+    <text x="180" y="536" font-size="13" fill="#486581">Find available nodes and inspect their sensors</text>
+
+    <rect x="145" y="575" width="485" height="75" rx="14" fill="#ffffff" stroke="#9b5de5" stroke-width="2"/>
+    <text x="180" y="606" font-size="17" font-weight="700" fill="#5b2c83">Plugins and images</text>
+    <text x="180" y="631" font-size="13" fill="#486581">Discover plugins and inspect collected images</text>
+
+    <rect x="145" y="670" width="485" height="75" rx="14" fill="#ffffff" stroke="#f59f00" stroke-width="2"/>
+    <text x="180" y="701" font-size="17" font-weight="700" fill="#7c4a03">Edge jobs</text>
+    <text x="180" y="726" font-size="13" fill="#486581">Submit, monitor, suspend, and remove jobs</text>
+
+    <rect x="145" y="765" width="485" height="75" rx="14" fill="#ffffff" stroke="#0b7285" stroke-width="2"/>
+    <text x="180" y="796" font-size="17" font-weight="700" fill="#0b5260">Sage documentation</text>
+    <text x="180" y="821" font-size="13" fill="#486581">Search documentation and answer common questions</text>
+
+    <rect x="145" y="860" width="485" height="75" rx="14" fill="#ffffff" stroke="#627d98" stroke-width="2"/>
+    <text x="180" y="891" font-size="17" font-weight="700" fill="#334e68">Location search</text>
+    <text x="180" y="916" font-size="13" fill="#486581">Find nodes and measurements by place</text>
+  </g>
+
+  <!-- Main flow and connector spine stay entirely outside all text boxes. -->
+  <line x1="350" y1="170" x2="350" y2="210" stroke="#627d98" stroke-width="3" marker-end="url(#arrow)"/>
+  <path d="M350 330 L350 355 L95 355 L95 898" fill="none" stroke="#627d98" stroke-width="3"/>
+
+  <line x1="95" y1="422" x2="135" y2="422" stroke="#627d98" stroke-width="2.5" marker-end="url(#arrow)"/>
+  <line x1="95" y1="517" x2="135" y2="517" stroke="#627d98" stroke-width="2.5" marker-end="url(#arrow)"/>
+  <line x1="95" y1="612" x2="135" y2="612" stroke="#627d98" stroke-width="2.5" marker-end="url(#arrow)"/>
+  <line x1="95" y1="707" x2="135" y2="707" stroke="#627d98" stroke-width="2.5" marker-end="url(#arrow)"/>
+  <line x1="95" y1="802" x2="135" y2="802" stroke="#627d98" stroke-width="2.5" marker-end="url(#arrow)"/>
+  <line x1="95" y1="897" x2="135" y2="897" stroke="#627d98" stroke-width="2.5" marker-end="url(#arrow)"/>
+
+  <text x="350" y="972" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#627d98">Public and authenticated access through multiple MCP connection methods</text>
+</svg>
