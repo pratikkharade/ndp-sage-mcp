@@ -7,7 +7,7 @@ The Sage Model Context Protocol (MCP) server gives AI assistants a natural-langu
 
 ![Overview of the existing Sage MCP tools for data, nodes, plugins, jobs, documentation, and location search](docs/images/sage-existing-capabilities.svg)
 
-## Why we need this
+## Key Limitations
 
 The existing Sage MCP helps users find and query data, but the work often continues outside Sage. Researchers still need to organize results, record where they came from, publish them for discovery, and work with live data without processing the entire Sage feed. Doing this manually across separate systems takes time, makes workflows difficult to repeat, and increases the risk of incomplete provenance or inconsistent metadata.
 
