@@ -5,7 +5,19 @@
 The Sage Model Context Protocol (MCP) server gives AI assistants a natural-language interface to the Sage edge-computing infrastructure. It can discover nodes and sensors, query measurements, inspect plugins and images, manage edge jobs, search documentation, and locate data by place. It supports public and authenticated access through several connection methods.
 
 
-![Overview of the existing Sage MCP tools for data, nodes, plugins, jobs, documentation, and location search](docs/images/sage-existing-capabilities.svg)
+```mermaid
+flowchart TB
+    Assistant["AI assistant<br/>Natural-language request"]
+    Sage["Sage MCP<br/>One interface to Sage services"]
+
+    Assistant --> Sage
+    Sage --> Sensors["Sensor data<br/>Query measurements and summaries"]
+    Sage --> Nodes["Node discovery<br/>Find nodes and inspect sensors"]
+    Sage --> Plugins["Plugins and images<br/>Discover plugins and inspect images"]
+    Sage --> Jobs["Edge jobs<br/>Submit and manage jobs"]
+    Sage --> Docs["Sage documentation<br/>Search docs and answer questions"]
+    Sage --> Location["Location search<br/>Find data by place"]
+```
 
 ## Key Limitations
 
@@ -24,7 +36,12 @@ This project proposes new tools that extend the Sage MCP workflow to include Nat
 
 These changes reduce manual handoffs and create a clearer, repeatable path from observation to reusable research data.
 
-![Overview of Sage MCP extended with National Data Platform and live streaming capabilities](docs/images/sage-mcp-capabilities.svg)
+```mermaid
+flowchart LR
+    Assistant["AI assistant<br/>Natural-language requests"] --> Sage["Sage MCP<br/>Conversational interface"]
+    Sage --> NDP["National Data Platform tools<br/>Register, update, and publish datasets"]
+    Sage --> Streaming["Live streaming tools<br/>Profile, filter, sample, tail, and manage feeds"]
+```
 
 ## National Data Platform tools
 
@@ -59,7 +76,17 @@ Profiling exposes real node identifiers, measurement names, and values before fi
 
 ## Benefits and Improvements
 
-![Workflow from discovering Sage data to reviewing, publishing, and reusing it](docs/images/sage-data-workflow.svg)
+```mermaid
+flowchart LR
+    Discover["Discover<br/>Nodes, sensors, plugins, or images"]
+    Query["Query or observe<br/>Historical or live Sage data"]
+    Path["Choose a path<br/>Register or update an NDP dataset<br/>or create a filtered stream"]
+    Review["Review<br/>Metadata, provenance, filters, and contents"]
+    Use["Publish or consume<br/>Discover in NDP, consume the stream,<br/>or append future data"]
+
+    Discover --> Query --> Path --> Review --> Use
+    Use -. New observations .-> Path
+```
 
 The expanded workflow is:
 
